@@ -5,6 +5,45 @@
 #include "imgproc.h"
 
 // TODO: define your helper functions here
+uint32_t get_r( uint32_t pixel ){
+  return (pixel >> 24) & 0xFF;
+}
+uint32_t get_g( uint32_t pixel ){
+  return (pixel >> 16) & 0xFF;
+}
+uint32_t get_b( uint32_t pixel ){
+  return (pixel >> 8) & 0xFF;
+}
+uint32_t get_a( uint32_t pixel ){
+  return pixel & 0xFF;
+}
+
+uint32_t make_pixel( uint32_t r, uint32_t g, uint32_t b, uint32_t a ){
+  return (r << 24) | (g << 16) | (b << 8) | a;
+}
+
+int32_t compute_index( struct Image *img, int32_t row, int32_t col ){
+  return row * img->width + col;
+  // does this need error checking for row/col out of bounds?
+}
+
+int is_in_ellipse( struct Image *img, int32_t row, int32_t col ){
+  // does this need error checking for row/col out of bounds?
+  // center of the ellipse
+  int32_t centerRow = img->height / 2; // b
+  int32_t centerCol = img->width / 2; // a
+  
+  int32_t yDistFromCenter = row - centerRow; // y
+  int32_t xDistFromCenter = col - centerCol; // x
+
+  // check ellispe equation: ⌊(10,000*x^2)/a^2⌋ + ⌊(10,000*y^2)/b^2⌋ ≤ 10,000
+  // where the center pixel has row b and col a, and x is horizontal distance
+  // from the center pixel and y is vertical distance from center pixel
+  int32_t term1 = 10000 * xDistFromCenter * xDistFromCenter / centerCol * centerCol;
+  int32_t term2 = 10000 * yDistFromCenter * yDistFromCenter / centerRow * centerRow;
+
+  return (term1 + term2) <= 10000;
+}
 
 //! Transform the color component values in each input pixel
 //! by applying the bitwise complement operation. I.e., each bit
@@ -16,7 +55,29 @@
 //! @param output_img pointer to the output Image (in which the
 //!                   transformed pixels should be stored)
 void imgproc_complement( struct Image *input_img, struct Image *output_img ) {
-  // TODO: implement
+  int32_t width = input_img->width;
+  int32_t height = input_img->height;
+
+  for (int32_t row = 0; row < height; row++){
+    for (int32_t col = 0; col < width; col++){
+      int32_t dataIdx = compute_index(input_img, row, col);
+      uint32_t pixel = input_img->data[dataIdx];
+      
+      // extract RGBA components
+      uint32_t r = get_r(pixel);
+      uint32_t g = get_g(pixel);
+      uint32_t b = get_b(pixel);
+      uint32_t a = get_a(pixel);
+      
+      // apply complement to RGB, keep A untouched
+      r = ~r & 0xFF;
+      g = ~g & 0xFF;
+      b = ~b & 0xFF;
+
+      // create new pixel with the complements and store it in output image
+      output_img->data[dataIdx] = make_pixel(r,g,b,a);
+    }
+  }
 }
 
 //! Transform the input image by swapping the row and column

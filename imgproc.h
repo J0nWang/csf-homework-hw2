@@ -88,4 +88,55 @@ void imgproc_emboss( struct Image *input_img, struct Image *output_img );
 
 // TODO: add prototypes for your helper functions
 
+//! retreives the r value for a pixel
+//!
+//! @param pixel pixel to retreive value from
+//! @return uint32_t value representing the pixel's r value
+uint32_t get_r( uint32_t pixel );
+
+//! retreives the g value for a pixel
+//!
+//! @param pixel pixel to retreive value from
+//! @return uint32_t value representing the pixel's g value
+uint32_t get_g( uint32_t pixel );
+
+//! retreives the b value for a pixel
+//!
+//! @param pixel pixel to retreive value from
+//! @return uint32_t value representing the pixel's b value
+uint32_t get_b( uint32_t pixel );
+
+//! retreives the alpha value for a pixel
+//!
+//! @param pixel pixel to retreive value from
+//! @return uint32_t value representing the pixel's alpha value
+uint32_t get_a( uint32_t pixel );
+
+//! returns an uint32_t value that represents the r,g,b, and a values of a pixel
+//!
+//! @param r pixel's r value
+//! @param g pixel's g value
+//! @param b pixel's b value
+//! @param a pixel's alpha value
+//! @return uint32_t value representing a pixel's r,g,b, and a value
+uint32_t make_pixel( uint32_t r, uint32_t g, uint32_t b, uint32_t a );
+
+//! calculates the index number of a particular pixel in an Image's data field
+//! based its row and column values
+//!
+//! @param img pointer to the input image 
+//! @param row the row number of the image's pixel
+//! @param col the column number of the image's pixel
+//! @return int32_t value representing the pixel's position in the Image's data field 
+int32_t compute_index( struct Image *img, int32_t row, int32_t col );
+
+//! determines whether or not a particular pixel in an image is in an ellipse.
+//!
+//! @param img pointer to the input image 
+//! @param row the row number of the image's pixel
+//! @param col the column number of the image's pixel
+//! @return int value representing whether or not the pixel was in the ellispe;
+//!         1 if it is, 0 if it is not.
+int is_in_ellipse( struct Image *img, int32_t row, int32_t col );
+
 #endif // IMGPROC_H

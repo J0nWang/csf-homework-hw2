@@ -94,6 +94,13 @@ void test_transpose_basic( TestObjs *objs );
 void test_ellipse_basic( TestObjs *objs );
 void test_emboss_basic( TestObjs *objs );
 // TODO: add prototypes for additional test functions
+uint32_t test_get_r( uint32_t pixel );
+uint32_t test_get_g( uint32_t pixel );
+uint32_t test_get_b( uint32_t pixel );
+uint32_t test_get_a( uint32_t pixel );
+uint32_t test_make_pixel( uint32_t r, uint32_t g, uint32_t b, uint32_t a );
+int32_t test_compute_index( struct Image *img, int32_t row, int32_t col );
+int test_is_in_ellipse( struct Image *img, int32_t row, int32_t col );
 
 int main( int argc, char **argv ) {
   // allow the specific test to execute to be specified as the
@@ -111,6 +118,13 @@ int main( int argc, char **argv ) {
   TEST( test_ellipse_basic );
   TEST( test_emboss_basic );
 
+  TEST( test_get_r );
+  TEST( test_get_g );
+  TEST( test_get_b );
+  TEST( test_get_a );
+  TEST( test_make_pixel );
+  TEST( test_compute_index );
+  TEST( test_is_in_ellipse );
   TEST_FINI();
 }
 
@@ -368,4 +382,42 @@ void test_emboss_basic( TestObjs *objs ) {
   ASSERT( images_equal( objs->smiley_out, smiley_emboss_expected ) );
 
   destroy_img( smiley_emboss_expected );
+}
+
+
+
+
+// need to write unit tests for helper functions
+uint32_t get_r( uint32_t pixel ){
+  // stub, remove when finished
+  return 0;
+}
+uint32_t get_g( uint32_t pixel {
+  // stub, remove when finished
+  return 0;
+}
+
+uint32_t get_b( uint32_t pixel ){
+  // stub, remove when finished
+  return 0;
+}
+
+uint32_t get_a( uint32_t pixel ){
+  // stub, remove when finished
+  return 0;
+}
+
+uint32_t make_pixel( uint32_t r, uint32_t g, uint32_t b, uint32_t a ){
+  // stub, remove when finished
+  return 0;
+}
+
+int32_t compute_index( struct Image *img, int32_t row, int32_t col ){
+  // stub, remove when finished
+  return 0;
+}
+
+int is_in_ellipse( struct Image *img, int32_t row, int32_t col ){
+  // stub, remove when finished
+  return 0;
 }
