@@ -39,8 +39,8 @@ int is_in_ellipse( struct Image *img, int32_t row, int32_t col ){
   // check ellispe equation: ⌊(10,000*x^2)/a^2⌋ + ⌊(10,000*y^2)/b^2⌋ ≤ 10,000
   // where the center pixel has row b and col a, and x is horizontal distance
   // from the center pixel and y is vertical distance from center pixel
-  int32_t term1 = 10000 * xDistFromCenter * xDistFromCenter / centerCol * centerCol;
-  int32_t term2 = 10000 * yDistFromCenter * yDistFromCenter / centerRow * centerRow;
+  int32_t term1 = (10000 * xDistFromCenter * xDistFromCenter) / (centerCol * centerCol);
+  int32_t term2 = (10000 * yDistFromCenter * yDistFromCenter) / (centerRow * centerRow);
 
   return (term1 + term2) <= 10000;
 }
@@ -95,7 +95,24 @@ void imgproc_complement( struct Image *input_img, struct Image *output_img ) {
 //!         transformation can't be applied because the image
 //!         width and height are not the same
 int imgproc_transpose( struct Image *input_img, struct Image *output_img ) {
-  // TODO: implement
+  int32_t width = input_img->width;
+  int32_t height = input_img->height;
+
+  // check if image is square
+  if (width != height) return 0;
+
+  for (int32_t row = 0; row < height; row++){
+    for (int32_t col = 0; col < width; col++){
+      // get pixel at (row, col) from input image
+      int32_t input_index = compute_index(input_img, row, col);
+      int32_t transposed_index = compute_index(input_img, col, row);
+      
+      // and store it at (col, row) in output image
+      uint32_t pixel = input_img->data[input_index];
+      output_img->data[transposed_index] = pixel;
+    }
+  }
+
   return 1;
 }
 
@@ -119,7 +136,20 @@ int imgproc_transpose( struct Image *input_img, struct Image *output_img ) {
 //! @param output_img pointer to the output Image (in which the
 //!                   transformed pixels should be stored)
 void imgproc_ellipse( struct Image *input_img, struct Image *output_img ) {
-  // TODO: implement
+  int32_t width = input_img->width;
+  int32_t height = input_img->height;
+
+  for (int32_t row = 0; row < height; row++){
+    for (int32_t col = 0; col < width; col++){
+      int32_t index = compute_index(input_img, row, col);
+      
+      if (is_in_ellipse(input_img, row, col)){
+        // copy the pixel over if it's in the ellipse
+        output_img->data[index] = input_img->data[index];
+      }
+      // otherwise, leave it as opaque black, which is the default (0x000000FF)
+    }
+  }
 }
 
 //! Transform the input image using an "emboss" effect. The pixels
