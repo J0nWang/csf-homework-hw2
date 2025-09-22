@@ -1,3 +1,10 @@
+/*
+ * Transformations on image files, using C for Milestone 1.
+ * CSF Assignment 2 MS1
+ * Jonathan Wang
+ * jwang612@jhu.edu
+ */
+
 #include <assert.h>
 #include <stdlib.h>
 #include <stdbool.h>
