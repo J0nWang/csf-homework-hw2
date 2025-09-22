@@ -1,19 +1,24 @@
 // C implementations of image processing functions
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <assert.h>
 #include "imgproc.h"
 
 // TODO: define your helper functions here
+
 uint32_t get_r( uint32_t pixel ){
   return (pixel >> 24) & 0xFF;
 }
+
 uint32_t get_g( uint32_t pixel ){
   return (pixel >> 16) & 0xFF;
 }
+
 uint32_t get_b( uint32_t pixel ){
   return (pixel >> 8) & 0xFF;
 }
+
 uint32_t get_a( uint32_t pixel ){
   return pixel & 0xFF;
 }
@@ -44,6 +49,70 @@ int is_in_ellipse( struct Image *img, int32_t row, int32_t col ){
 
   return (term1 + term2) <= 10000;
 }
+
+void calculate_rgb_diffs(uint32_t current_pixel, uint32_t neighbor_pixel, 
+                        int32_t *diff_r, int32_t *diff_g, int32_t *diff_b) {
+  int32_t r = get_r(current_pixel);
+  int32_t g = get_g(current_pixel);
+  int32_t b = get_b(current_pixel);
+  
+  int32_t nr = get_r(neighbor_pixel);
+  int32_t ng = get_g(neighbor_pixel);
+  int32_t nb = get_b(neighbor_pixel);
+  
+  *diff_r = nr - r;
+  *diff_g = ng - g;
+  *diff_b = nb - b;
+}
+
+// helper function to get absolute value
+int32_t abs_value(int32_t value) {
+  return abs(value);
+}
+
+int32_t get_max_diff(int32_t diff_r, int32_t diff_g, int32_t diff_b) {
+  int32_t abs_r = abs_value(diff_r);
+  int32_t abs_g = abs_value(diff_g);
+  int32_t abs_b = abs_value(diff_b);
+  
+  // control flow statement to handle color priorities
+  if (abs_r >= abs_g && abs_r >= abs_b) {
+      return diff_r;
+  } else if (abs_g >= abs_b) {
+      return diff_g;
+  } else {
+      return diff_b;
+  }
+}
+
+int32_t clamp_gray_value(int32_t value){
+  if (value < 0) return 0;
+  if (value > 255) return 255;
+  return value;
+}
+
+void process_interior_pixel(struct Image *input_img, struct Image *output_img, 
+                          int32_t row, int32_t col, int32_t index, uint32_t current_pixel,
+                          uint32_t alpha) {
+  // get upper-left neighbor pixel
+  int32_t neighbor_index = compute_index(input_img, row - 1, col - 1);
+  uint32_t neighbor_pixel = input_img->data[neighbor_index];
+  
+  // calculate RGB differences between current and neighbor pixel
+  int32_t diff_r, diff_g, diff_b;
+  calculate_rgb_diffs(current_pixel, neighbor_pixel, &diff_r, &diff_g, &diff_b);
+  
+  // find difference with largest absolute value
+  int32_t diff = get_max_diff(diff_r, diff_g, diff_b);
+  
+  // compute gray value with clamping (value must be between 0 and 255)
+  int32_t gray = clamp_gray_value(128 + diff);
+  
+  // set RGB to gray, keep alpha and store pixel in output
+  output_img->data[index] = make_pixel(gray, gray, gray, alpha);
+}
+
+// ---------- BEGIN IMAGE PROCESSING FUNCTIONS HERE ---------- //
 
 //! Transform the color component values in each input pixel
 //! by applying the bitwise complement operation. I.e., each bit
@@ -183,5 +252,21 @@ void imgproc_ellipse( struct Image *input_img, struct Image *output_img ) {
 //! @param output_img pointer to the output Image (in which the
 //!                   transformed pixels should be stored)
 void imgproc_emboss( struct Image *input_img, struct Image *output_img ) {
-  // TODO: implement
+  int32_t width = input_img->width;
+  int32_t height = input_img->height;
+
+  for (int32_t row = 0; row < height; row++){
+    for (int32_t col = 0; col < width; col++){
+      int32_t index = compute_index(input_img, row, col);
+      uint32_t pixel = input_img->data[index];
+      int32_t a = get_a(pixel);
+
+      if (row == 0 || col == 0){
+        // if pixel is in the top row or leftmost column, set RGB to 128, keep alpha
+        output_img->data[index] = make_pixel(128,128,128,a);
+      } else {
+        process_interior_pixel(input_img, output_img, row, col, index, pixel, a);
+      }
+    }
+  }
 }

@@ -139,4 +139,50 @@ int32_t compute_index( struct Image *img, int32_t row, int32_t col );
 //!         1 if it is, 0 if it is not.
 int is_in_ellipse( struct Image *img, int32_t row, int32_t col );
 
+//! helper function to calculate RGB differences between two pixels. Values are
+//! stored in diff_r, diff_g, and diff_b respectively.
+//!
+//! @param current_pixel uint32_t value representing the current pixel's RGBA values
+//! @param neighbor_pixel uint32_t value representing the neighbors pixel's RGBA values
+//! @param diff_r int32_t value to store the difference between R values
+//! @param diff_g int32_t value to store the difference between G values
+//! @param diff_b int32_t value to store the difference between B values
+void calculate_rgb_diffs(uint32_t current_pixel, uint32_t neighbor_pixel, 
+                        int32_t *diff_r, int32_t *diff_g, int32_t *diff_b);
+
+//! helper function to return the absolute value of some value.
+//!
+//! @param value the uint32_t value to take an absolute value of
+//! @return int32_t value result after taking absolute value of the input value
+int32_t abs_value(int32_t value);
+
+//! helper function to find the RGB difference with largest absolute value.
+//! note that red has priority over green and blue, green has priority over blue.
+//!
+//! @param diff_r int32_t representing the difference between two R values
+//! @param diff_g int32_t representing the difference between two G values
+//! @param diff_b int32_t representing the difference between two B values
+//! @return the diff's with the largest absolute value (with respect to color priorities)
+int32_t get_max_diff(int32_t diff_r, int32_t diff_g, int32_t diff_b);
+
+//! helper function to clamp the gray value to a value between 0 and 255.
+//!
+//! @param int32_t value representing the gray value
+//! @return the clamped value (if needed)
+int32_t clamp_gray_value(int32_t value);
+
+//! helper function to apply emboss effect to interior pixels.
+//!
+//! @param input_img pointer to the input Image
+//! @param output_img pointer to the output Image (in which the
+//!                   transformed pixels should be stored)
+//! @param row the row number of the image's pixel
+//! @param col the column number of the image's pixel
+//! @param index index where a pixel is stored in the Image struct's data array
+//! @param current_pixel uint32_t value representing the current pixel's RGBA values
+//! @param alpha uint32_t value repesenting the current pixel's alpha value
+void process_interior_pixel(struct Image *input_img, struct Image *output_img, 
+                          int32_t row, int32_t col, int32_t index, uint32_t current_pixel,
+                          uint32_t alpha);
+
 #endif // IMGPROC_H
