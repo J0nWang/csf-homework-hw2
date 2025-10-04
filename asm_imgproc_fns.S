@@ -117,6 +117,87 @@ compute_index:
 	ret																		/* return with result in %eax */
 
 /*
+ * Calculates the index number of a particular pixel in an Image's data field
+ * based its row and column values
+ *
+ * Parameters:
+ * 	%rdi - pointer to the input image 
+ * 	%esi - the row number of the image's pixel
+ * 	%edx - the column number of the image's pixel
+ * 
+ * @return int value representing whether or not the pixel was in the ellispe
+ * 				 1 if it is, 0 if it is not.
+ *
+ * Register use:
+ *	%r8d - image width/2 = equivalent to centerRow in C code. This is our b
+ *	%r9d - image height/2 = equivalent to centerCol in C code. This is our a
+ *	%esi - row-centerRow = equivalent to yDistFromCenter. This is our y
+ *	%edx - col-centerCol = equivalent to xDistFromCenter. This is our x
+ *	%r10 - used to calculate first term, and eventually holds the left hand sum
+ *	%r11 - used to calculate the second term
+ *	%r12 - used to calculate the intermediary value x*x
+ *	%rax - first used to calculate intermediary value y*y, then used to return success/failure
+ *	%rbx - used to calculate limit term
+*/
+.globl is_in_ellipse
+is_in_ellipse:
+	/* Push callee saved variables */
+	pushq %rbx
+	pushq %r12
+
+	movl IMAGE_WIDTH_OFFSET(%rdi), %r8d /* make copy of image width and store in %r8d scratch variable */
+	movl IMAGE_HEIGHT_OFFSET(%rdi), %r9d /* make copy of image height and store in %r9d scratch variable */
+	
+	shrl $1, %r8d /* width/2 to get center column = a */
+	shrl $1, %r9d /* height/2 to get center row = b */
+
+	subl %r8d, %edx /* x distance from center = current column - center column = x */
+	subl %r9d, %esi /* y distance from center = current row - center row = y */
+
+	/* Originially we were using the formula ⌊(10,000*x^2)/a^2⌋ + ⌊(10,000*y^2)/b^2⌋ ≤ 10,000.
+		This is fine, but can be optimized as division operations are very slow in assembly.
+		We can instead rearrange the formula as:
+			10,000*x^2*b^2 + 10,000*y^2*a^2 <= 10,000*a^2+b^2 (multiply both sides by a^2*b^2)
+		= x^2*b^2 + y^2*a^2 <= a^2*b^2	(divide both sides by 10,000)
+		= x*x*b*b + y*y*a*a <= a*a*b*b
+		Now we can use only add and mult operations, which is much faster than div
+	*/
+	/* convert 32 bit integers to 64 bit signed integers to prepare for multiplication (in case overflow happens) */
+	movslq %r8d, %r10	/* r10 = a */
+	movslq %r9d, %r11 /* r11 = b */
+	movslq %edx, %r12 /* r12 = x */
+	movslq %esi, %rax /* rax = y */
+
+	imulq %r10, %r10	/* r10 = a*a */
+	imulq %r11, %r11	/* r11 = b*b */
+	imulq %r12, %r12	/* r12 = x*x */
+	imulq %rax, %rax	/* rax = y*y */
+
+	movq %r10, %rbx		/* move a*a to rbx */
+	imulq %r11, %rbx	/* rbx = a*a*b*b (the limit term) */
+
+	imulq %rax, %r10	/* r10 = a*a*y*y */
+	imulq %r12, %r11	/* r11 = b*b*x*x */
+
+	addq %r11, %r10 	/* r10 = a*a*y*y + b*b*x*x */
+
+	cmpq %rbx, %r10 	/* compare sum with limit */
+	jg .Lnot_in_ellipse /* jump if sum > limit */
+
+	movl $1, %eax 		/* if didn't jump, then inequality must've been satisfied, return 1 */
+	jmp .Ldone_ellispe	/* jump to cleanup */
+
+	.Lnot_in_ellipse:
+		movl $0, %eax		/* return 0 (not in ellispe) */
+
+	.Ldone_ellispe:
+		/* restore callee-saved registers in reverse order of saving */
+		popq %r12
+		popq %rbx
+
+		ret
+
+/*
  * Definitions of image transformation functions
  */
 
@@ -311,11 +392,96 @@ imgproc_transpose:
  *  %rdi - pointer to the input Image
  *  %rsi - pointer to the output Image (in which the
  *                    transformed pixels should be stored)
+ *
+ * Register use:
+ *	 %r8d  - scratch variable used to calculate a
+ *	 %r9d  - scratch variable used to calculate b
+ *	 %r10  - used to calculate the intermediary value a*a
+ *	 %r11  - used to calculate the intermediary value b*b
+ *   %r12d - image width
+ *   %r13d - image height
+ *   %r14  - pointer to input image data array
+ *   %r15  - pointer to output image data array
+ *   %ebx  - outer loop counter (row index)
+ *	 %ecx  - inner loop counter (col index)
+ *   %rax  - index for storing/loading a pixel from a pixel data array
+ *	 %rsi  - used to calculate the second term (y*y*a*a)
+ *   %rdx  - used to calculate the first term and the left hand sum (x*x*b*b + y*y*a*a)
+ *	 %rbp  - used to calculate the limit term (a*a*b*b)
  */
 	.globl imgproc_ellipse
 imgproc_ellipse:
-	/* TODO: implement */
-	ret
+	/* prologue to create ABI-compliant stack frame */
+	pushq %rbp
+	movq %rsp, %rbp
+
+	/* pushing callee-saved registers */
+	pushq %rbx
+	pushq %r12
+	pushq %r13
+	pushq %r14
+	pushq %r15
+
+	movl IMAGE_HEIGHT_OFFSET(%rdi), %r12d		/* store image height in %r12d */
+	movl IMAGE_WIDTH_OFFSET(%rdi), %r13d 		/* store image width in %r13d */
+	movq %rdi, %r14         # Save input image pointer in %r14
+	movq %rsi, %r15         # Save output image pointer in %r15
+	
+
+	movl $0, %ebx				/* initialize row counter to 0 */
+
+	.Lrow_loop:
+		cmpl %r12d, %ebx 	/* are we done iterating through all rows? */
+		jge .Lellipse_done 				/* if so, jump to cleanup	*/
+		movl $0, %ecx # initialize col counter to 0
+
+	.Lcol_loop:
+		cmpl %r13d, %ecx # are we done iterating through all columns of the row?
+		jge .Lnext_row # if so, jump to next row
+
+		pushq %rbx
+		pushq %rcx
+
+		movq %r14, %rdi	# image pointer in %rdi (arg 1)
+		movl %ebx, %esi	# row in %esi (arg 2)
+		movl %ecx, %edx # col in %edx (arg 3)
+		call is_in_ellipse
+
+		popq %rcx
+		popq %rbx
+		cmpl $0, %eax # see if eax returned 1 or 0 (success or fail)
+		je .Lskip_pixel # if fail, jump to Lskip_pixel
+
+			# Calculate index: row * width + col
+		movl %ebx, %eax         # Copy row to %eax
+		imull %r13d, %eax       # Multiply by width
+		addl %ecx, %eax         # Add column
+
+		movq IMAGE_DATA_OFFSET(%r14), %rdx    # Load input data pointer
+		movl (%rdx, %rax, 4), %edx            # load pixel from input[index]
+		movq IMAGE_DATA_OFFSET(%r15), %rsi    # Load output data pointer
+		movl %edx, (%rsi, %rax, 4)            # store pixel to output[index]
+	
+	.Lskip_pixel:
+		incl %ecx	# increment column counter
+		jmp .Lcol_loop # go to next column
+
+	.Lnext_row:
+		incl %ebx # increment row counter
+		jmp .Lrow_loop # go to the next row
+
+	.Lellipse_done:
+		/* restore callee-saved registers in reverse order of saving */
+		popq %r15
+		popq %r14
+		popq %r13
+		popq %r12
+		popq %rbx
+
+		/* epilogue to restore ABI-compliant stack frame */
+		popq %rbp
+
+		ret
 
 /*
  *  Transform the input image using an "emboss" effect. The pixels
@@ -349,11 +515,28 @@ imgproc_ellipse:
  *  %rdi - pointer to the input Image
  *  %rsi - pointer to the output Image (in which the
  *                    transformed pixels should be stored)
+ * 
+ * Parameters:
+ *   %rdi - pointer to input Image
+ *   %rsi - pointer to output Image
+ * 
+ * Register usage:
+ *   %rbx - row counter
+ *   %r12d - height
+ *   %r13d - width
+ *   %r14 - input image pointer
+ *   %r15 - output image pointer
  */
 	.globl imgproc_emboss
 imgproc_emboss:
-	/* TODO: implement */
-	ret
+
+
+
+
+
+
+
+
 
 /*
 vim:ft=gas:

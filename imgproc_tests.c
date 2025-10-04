@@ -98,8 +98,8 @@ void destroy_img( struct Image *img );
 // Test functions
 void test_complement_basic( TestObjs *objs );
 void test_transpose_basic( TestObjs *objs );
-// void test_ellipse_basic( TestObjs *objs );
-// void test_emboss_basic( TestObjs *objs );
+void test_ellipse_basic( TestObjs *objs );
+void test_emboss_basic( TestObjs *objs );
 // TODO: add prototypes for additional test functions
 // void test_get_r( TestObjs *objs );
 // void test_get_g( TestObjs *objs );
@@ -107,7 +107,7 @@ void test_transpose_basic( TestObjs *objs );
 // void test_get_a( TestObjs *objs );
 // void test_make_pixel( TestObjs *objs );
 // void test_compute_index( TestObjs *objs );
-// void test_is_in_ellipse( TestObjs *objs );
+void test_is_in_ellipse( TestObjs *objs );
 // void test_calculate_rgb_diffs( TestObjs *objs );
 // void test_abs_value( TestObjs *objs );
 // void test_get_max_diff( TestObjs *objs );
@@ -127,8 +127,8 @@ int main( int argc, char **argv ) {
   // for any additional test functions you add.
   TEST( test_complement_basic );
   TEST( test_transpose_basic );
-  // TEST( test_ellipse_basic );
-  // TEST( test_emboss_basic );
+  TEST( test_ellipse_basic );
+  TEST( test_emboss_basic );
 
   // TEST( test_get_r );
   // TEST( test_get_g );
@@ -136,7 +136,7 @@ int main( int argc, char **argv ) {
   // TEST( test_get_a );
   // TEST( test_make_pixel );
   // TEST( test_compute_index );
-  // TEST( test_is_in_ellipse );
+  TEST( test_is_in_ellipse );
   // TEST( test_calculate_rgb_diffs );
   // TEST( test_abs_value );
   // TEST( test_get_max_diff );
@@ -501,30 +501,30 @@ void test_emboss_basic( TestObjs *objs ) {
 //     ASSERT( compute_index(sq, 6, 6) == 78 );
 // }
 
-// void test_is_in_ellipse( TestObjs *objs ) {
-//     struct Image *img = objs->smiley; // 16x10 image
+void test_is_in_ellipse( TestObjs *objs ) {
+    struct Image *img = objs->smiley; // 16x10 image
     
-//     // center should be at (5, 8)
-//     // center point should be in ellipse
-//     ASSERT( is_in_ellipse(img, 5, 8) == 1 );
+    // center should be at (5, 8)
+    // center point should be in ellipse
+    ASSERT( is_in_ellipse(img, 5, 8) == 1 );
     
-//     // points close to center should also be in ellipse
-//     ASSERT( is_in_ellipse(img, 5, 7) == 1 );
-//     ASSERT( is_in_ellipse(img, 5, 1) == 1 );
-//     ASSERT( is_in_ellipse(img, 4, 8) == 1 );
-//     ASSERT( is_in_ellipse(img, 1, 8) == 1 );
+    // points close to center should also be in ellipse
+    ASSERT( is_in_ellipse(img, 5, 7) == 1 );
+    ASSERT( is_in_ellipse(img, 5, 1) == 1 );
+    ASSERT( is_in_ellipse(img, 4, 8) == 1 );
+    ASSERT( is_in_ellipse(img, 1, 8) == 1 );
     
-//     // corner points should be outside ellipse
-//     ASSERT( is_in_ellipse(img, 0, 0) == 0 );
-//     ASSERT( is_in_ellipse(img, 0, 15) == 0 );
-//     ASSERT( is_in_ellipse(img, 9, 0) == 0 );
-//     ASSERT( is_in_ellipse(img, 9, 15) == 0 );
+    // corner points should be outside ellipse
+    ASSERT( is_in_ellipse(img, 0, 0) == 0 );
+    ASSERT( is_in_ellipse(img, 0, 15) == 0 );
+    ASSERT( is_in_ellipse(img, 9, 0) == 0 );
+    ASSERT( is_in_ellipse(img, 9, 15) == 0 );
     
-//     struct Image *sq = objs->sq_test; // 12x12 image, center should be at (6, 6)
-//     ASSERT( is_in_ellipse(sq, 6, 6) == 1 );
-//     ASSERT( is_in_ellipse(sq, 0, 0) == 0 );
-//     ASSERT( is_in_ellipse(sq, 11, 11) == 0 );
-// }
+    struct Image *sq = objs->sq_test; // 12x12 image, center should be at (6, 6)
+    ASSERT( is_in_ellipse(sq, 6, 6) == 1 );
+    ASSERT( is_in_ellipse(sq, 0, 0) == 0 );
+    ASSERT( is_in_ellipse(sq, 11, 11) == 0 );
+}
 
 // void test_calculate_rgb_diffs( TestObjs *objs ) {
 //     uint32_t current = make_pixel(100, 150, 200, 255); 
