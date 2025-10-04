@@ -99,14 +99,14 @@ void destroy_img( struct Image *img );
 void test_complement_basic( TestObjs *objs );
 void test_transpose_basic( TestObjs *objs );
 void test_ellipse_basic( TestObjs *objs );
-void test_emboss_basic( TestObjs *objs );
+// void test_emboss_basic( TestObjs *objs );
 // TODO: add prototypes for additional test functions
-// void test_get_r( TestObjs *objs );
-// void test_get_g( TestObjs *objs );
-// void test_get_b( TestObjs *objs );
-// void test_get_a( TestObjs *objs );
-// void test_make_pixel( TestObjs *objs );
-// void test_compute_index( TestObjs *objs );
+void test_get_r( TestObjs *objs );
+void test_get_g( TestObjs *objs );
+void test_get_b( TestObjs *objs );
+void test_get_a( TestObjs *objs );
+void test_make_pixel( TestObjs *objs );
+void test_compute_index( TestObjs *objs );
 void test_is_in_ellipse( TestObjs *objs );
 // void test_calculate_rgb_diffs( TestObjs *objs );
 // void test_abs_value( TestObjs *objs );
@@ -128,14 +128,14 @@ int main( int argc, char **argv ) {
   TEST( test_complement_basic );
   TEST( test_transpose_basic );
   TEST( test_ellipse_basic );
-  TEST( test_emboss_basic );
+  // TEST( test_emboss_basic );
 
-  // TEST( test_get_r );
-  // TEST( test_get_g );
-  // TEST( test_get_b );
-  // TEST( test_get_a );
-  // TEST( test_make_pixel );
-  // TEST( test_compute_index );
+  TEST( test_get_r );
+  TEST( test_get_g );
+  TEST( test_get_b );
+  TEST( test_get_a );
+  TEST( test_make_pixel );
+  TEST( test_compute_index );
   TEST( test_is_in_ellipse );
   // TEST( test_calculate_rgb_diffs );
   // TEST( test_abs_value );
@@ -403,103 +403,103 @@ void test_emboss_basic( TestObjs *objs ) {
 }
 
 // Unit tests for helper functions
-// void test_get_r( TestObjs *objs ) {
-//     uint32_t pixel1 = 0xFF123456; // R=0xFF, G=0x12, B=0x34, A=0x56
-//     ASSERT( get_r(pixel1) == 0xFF );
+void test_get_r( TestObjs *objs ) {
+    uint32_t pixel1 = 0xFF123456; // R=0xFF, G=0x12, B=0x34, A=0x56
+    ASSERT( get_r(pixel1) == 0xFF );
     
-//     uint32_t pixel2 = 0x00FFFFFF; // R=0x00, others have max value
-//     ASSERT( get_r(pixel2) == 0x00 );
+    uint32_t pixel2 = 0x00FFFFFF; // R=0x00, others have max value
+    ASSERT( get_r(pixel2) == 0x00 );
     
-//     uint32_t pixel3 = 0xAB000000; // R=0xAB, others are zero
-//     ASSERT( get_r(pixel3) == 0xAB );
+    uint32_t pixel3 = 0xAB000000; // R=0xAB, others are zero
+    ASSERT( get_r(pixel3) == 0xAB );
     
-//     uint32_t smiley_pixel = objs->smiley->data[0];
-//     uint32_t expected_r = (smiley_pixel >> 24) & 0xFF;
-//     ASSERT( get_r(smiley_pixel) == expected_r );
-// }
+    uint32_t smiley_pixel = objs->smiley->data[0];
+    uint32_t expected_r = (smiley_pixel >> 24) & 0xFF;
+    ASSERT( get_r(smiley_pixel) == expected_r );
+}
 
-// void test_get_g( TestObjs *objs ) {
-//     uint32_t pixel1 = 0xFF123456; // R=0xFF, G=0x12, B=0x34, A=0x56
-//     ASSERT( get_g(pixel1) == 0x12 );
+void test_get_g( TestObjs *objs ) {
+    uint32_t pixel1 = 0xFF123456; // R=0xFF, G=0x12, B=0x34, A=0x56
+    ASSERT( get_g(pixel1) == 0x12 );
     
-//     uint32_t pixel2 = 0x00FF0000; // G=0xFF, others zero
-//     ASSERT( get_g(pixel2) == 0xFF );
+    uint32_t pixel2 = 0x00FF0000; // G=0xFF, others zero
+    ASSERT( get_g(pixel2) == 0xFF );
     
-//     uint32_t pixel3 = 0x0000FFFF; // G=0x00, B and A are max
-//     ASSERT( get_g(pixel3) == 0x00 );
+    uint32_t pixel3 = 0x0000FFFF; // G=0x00, B and A are max
+    ASSERT( get_g(pixel3) == 0x00 );
     
-//     uint32_t smiley_pixel = objs->smiley->data[5];
-//     uint32_t expected_g = (smiley_pixel >> 16) & 0xFF;
-//     ASSERT( get_g(smiley_pixel) == expected_g );
-// }
+    uint32_t smiley_pixel = objs->smiley->data[5];
+    uint32_t expected_g = (smiley_pixel >> 16) & 0xFF;
+    ASSERT( get_g(smiley_pixel) == expected_g );
+}
 
-// void test_get_b( TestObjs *objs ) {
-//     uint32_t pixel1 = 0xFF123456; // R=0xFF, G=0x12, B=0x34, A=0x56
-//     ASSERT( get_b(pixel1) == 0x34 );
+void test_get_b( TestObjs *objs ) {
+    uint32_t pixel1 = 0xFF123456; // R=0xFF, G=0x12, B=0x34, A=0x56
+    ASSERT( get_b(pixel1) == 0x34 );
     
-//     uint32_t pixel2 = 0x0000FF00; // B=0xFF, others zero
-//     ASSERT( get_b(pixel2) == 0xFF );
+    uint32_t pixel2 = 0x0000FF00; // B=0xFF, others zero
+    ASSERT( get_b(pixel2) == 0xFF );
     
-//     uint32_t pixel3 = 0xFFFF00FF; // B=0x00, others have max value
-//     ASSERT( get_b(pixel3) == 0x00 );
+    uint32_t pixel3 = 0xFFFF00FF; // B=0x00, others have max value
+    ASSERT( get_b(pixel3) == 0x00 );
     
-//     uint32_t smiley_pixel = objs->smiley->data[10];
-//     uint32_t expected_b = (smiley_pixel >> 8) & 0xFF;
-//     ASSERT( get_b(smiley_pixel) == expected_b );
-// }
+    uint32_t smiley_pixel = objs->smiley->data[10];
+    uint32_t expected_b = (smiley_pixel >> 8) & 0xFF;
+    ASSERT( get_b(smiley_pixel) == expected_b );
+}
 
-// void test_get_a( TestObjs *objs ) {
-//     uint32_t pixel1 = 0xFF123456; // R=0xFF, G=0x12, B=0x34, A=0x56
-//     ASSERT( get_a(pixel1) == 0x56 );
+void test_get_a( TestObjs *objs ) {
+    uint32_t pixel1 = 0xFF123456; // R=0xFF, G=0x12, B=0x34, A=0x56
+    ASSERT( get_a(pixel1) == 0x56 );
     
-//     uint32_t pixel2 = 0x000000FF; // A=0xFF, others zero
-//     ASSERT( get_a(pixel2) == 0xFF );
+    uint32_t pixel2 = 0x000000FF; // A=0xFF, others zero
+    ASSERT( get_a(pixel2) == 0xFF );
     
-//     uint32_t pixel3 = 0xFFFFFF00; // A=0x00, others max
-//     ASSERT( get_a(pixel3) == 0x00 );
+    uint32_t pixel3 = 0xFFFFFF00; // A=0x00, others max
+    ASSERT( get_a(pixel3) == 0x00 );
     
-//     uint32_t smiley_pixel = objs->smiley->data[15];
-//     uint32_t expected_a = smiley_pixel & 0xFF;
-//     ASSERT( get_a(smiley_pixel) == expected_a );
-// }
+    uint32_t smiley_pixel = objs->smiley->data[15];
+    uint32_t expected_a = smiley_pixel & 0xFF;
+    ASSERT( get_a(smiley_pixel) == expected_a );
+}
 
-// void test_make_pixel( TestObjs *objs ) {
-//     uint32_t pixel1 = make_pixel(0xFF, 0x12, 0x34, 0x56);
-//     ASSERT( pixel1 == 0xFF123456 );
+void test_make_pixel( TestObjs *objs ) {
+    uint32_t pixel1 = make_pixel(0xFF, 0x12, 0x34, 0x56);
+    ASSERT( pixel1 == 0xFF123456 );
     
-//     uint32_t pixel2 = make_pixel(0x00, 0x00, 0x00, 0xFF);
-//     ASSERT( pixel2 == 0x000000FF );
+    uint32_t pixel2 = make_pixel(0x00, 0x00, 0x00, 0xFF);
+    ASSERT( pixel2 == 0x000000FF );
     
-//     uint32_t pixel3 = make_pixel(0xFF, 0xFF, 0xFF, 0x00);
-//     ASSERT( pixel3 == 0xFFFFFF00 );
+    uint32_t pixel3 = make_pixel(0xFF, 0xFF, 0xFF, 0x00);
+    ASSERT( pixel3 == 0xFFFFFF00 );
     
-//     uint32_t r = 0xAB, g = 0xCD, b = 0xEF, a = 0x12;
-//     uint32_t pixel4 = make_pixel(r, g, b, a);
-//     ASSERT( get_r(pixel4) == r );
-//     ASSERT( get_g(pixel4) == g );
-//     ASSERT( get_b(pixel4) == b );
-//     ASSERT( get_a(pixel4) == a );
-// }
+    uint32_t r = 0xAB, g = 0xCD, b = 0xEF, a = 0x12;
+    uint32_t pixel4 = make_pixel(r, g, b, a);
+    ASSERT( get_r(pixel4) == r );
+    ASSERT( get_g(pixel4) == g );
+    ASSERT( get_b(pixel4) == b );
+    ASSERT( get_a(pixel4) == a );
+}
 
-// void test_compute_index( TestObjs *objs ) {
-//     struct Image *img = objs->smiley; // 16x10 image
+void test_compute_index( TestObjs *objs ) {
+    struct Image *img = objs->smiley; // 16x10 image
     
-//     // testing corner cases
-//     ASSERT( compute_index(img, 0, 0) == 0 );  // top left corner
-//     ASSERT( compute_index(img, 0, 15) == 15 ); // top right corner
-//     ASSERT( compute_index(img, 9, 0) == 144 ); // bottom left corner
-//     ASSERT( compute_index(img, 9, 15) == 159 ); // bottom right corner
+    // testing corner cases
+    ASSERT( compute_index(img, 0, 0) == 0 );  // top left corner
+    ASSERT( compute_index(img, 0, 15) == 15 ); // top right corner
+    ASSERT( compute_index(img, 9, 0) == 144 ); // bottom left corner
+    ASSERT( compute_index(img, 9, 15) == 159 ); // bottom right corner
     
-//     // testing interior positions
-//     ASSERT( compute_index(img, 1, 1) == 17 ); 
-//     ASSERT( compute_index(img, 5, 8) == 88 );
+    // testing interior positions
+    ASSERT( compute_index(img, 1, 1) == 17 ); 
+    ASSERT( compute_index(img, 5, 8) == 88 );
     
-//     // test with a square image
-//     struct Image *sq = objs->sq_test; // 12x12 image
-//     ASSERT( compute_index(sq, 0, 0) == 0 );
-//     ASSERT( compute_index(sq, 11, 11) == 143 );
-//     ASSERT( compute_index(sq, 6, 6) == 78 );
-// }
+    // test with a square image
+    struct Image *sq = objs->sq_test; // 12x12 image
+    ASSERT( compute_index(sq, 0, 0) == 0 );
+    ASSERT( compute_index(sq, 11, 11) == 143 );
+    ASSERT( compute_index(sq, 6, 6) == 78 );
+}
 
 void test_is_in_ellipse( TestObjs *objs ) {
     struct Image *img = objs->smiley; // 16x10 image

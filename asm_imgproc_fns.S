@@ -1,6 +1,6 @@
 /*
  * x86-64 assembly language implementations of functions
- * CSF Assignment 2 MS2
+ * CSF Assignment 2 MS3
  * Jonathan Wang
  * jwang612@jhu.edu
  */
@@ -394,20 +394,14 @@ imgproc_transpose:
  *                    transformed pixels should be stored)
  *
  * Register use:
- *	 %r8d  - scratch variable used to calculate a
- *	 %r9d  - scratch variable used to calculate b
- *	 %r10  - used to calculate the intermediary value a*a
- *	 %r11  - used to calculate the intermediary value b*b
- *   %r12d - image width
- *   %r13d - image height
- *   %r14  - pointer to input image data array
- *   %r15  - pointer to output image data array
+ *   %r12d - image height
+ *   %r13d - image width
+ *   %r14  - pointer to input image
+ *   %r15  - pointer to output image
  *   %ebx  - outer loop counter (row index)
  *	 %ecx  - inner loop counter (col index)
  *   %rax  - index for storing/loading a pixel from a pixel data array
- *	 %rsi  - used to calculate the second term (y*y*a*a)
- *   %rdx  - used to calculate the first term and the left hand sum (x*x*b*b + y*y*a*a)
- *	 %rbp  - used to calculate the limit term (a*a*b*b)
+ *	 %edx  - temporary storage place for the pixel being transposed
  */
 	.globl imgproc_ellipse
 imgproc_ellipse:
@@ -424,51 +418,51 @@ imgproc_ellipse:
 
 	movl IMAGE_HEIGHT_OFFSET(%rdi), %r12d		/* store image height in %r12d */
 	movl IMAGE_WIDTH_OFFSET(%rdi), %r13d 		/* store image width in %r13d */
-	movq %rdi, %r14         # Save input image pointer in %r14
-	movq %rsi, %r15         # Save output image pointer in %r15
+	movq %rdi, %r14         /* save input image pointer in %r14 */
+	movq %rsi, %r15         /* save output image pointer in %r15 */
 	
 
 	movl $0, %ebx				/* initialize row counter to 0 */
 
 	.Lrow_loop:
-		cmpl %r12d, %ebx 	/* are we done iterating through all rows? */
-		jge .Lellipse_done 				/* if so, jump to cleanup	*/
-		movl $0, %ecx # initialize col counter to 0
+		cmpl %r12d, %ebx 				/* are we done iterating through all rows? */
+		jge .Lellipse_done 			/* if so, jump to cleanup	*/
+		movl $0, %ecx 					/* initialize col counter to 0 */
 
 	.Lcol_loop:
-		cmpl %r13d, %ecx # are we done iterating through all columns of the row?
-		jge .Lnext_row # if so, jump to next row
+		cmpl %r13d, %ecx  	/* are we done iterating through all columns of the row? */
+		jge .Lnext_row 			/* if so, jump to next row */
 
-		pushq %rbx
-		pushq %rcx
+		pushq %rbx					/* save row count on stack */
+		pushq %rcx					/* save col count on stack */
 
-		movq %r14, %rdi	# image pointer in %rdi (arg 1)
-		movl %ebx, %esi	# row in %esi (arg 2)
-		movl %ecx, %edx # col in %edx (arg 3)
-		call is_in_ellipse
+		movq %r14, %rdi			/* image pointer in %rdi (arg 1) */
+		movl %ebx, %esi			/* row in %esi (arg 2)	*/
+		movl %ecx, %edx 		/* col in %edx (arg 3) */
+		call is_in_ellipse	/* call helper function passing in those args */
 
-		popq %rcx
-		popq %rbx
-		cmpl $0, %eax # see if eax returned 1 or 0 (success or fail)
-		je .Lskip_pixel # if fail, jump to Lskip_pixel
+		popq %rcx						/* restore col count from stack */
+		popq %rbx						/* restore row count from stack */
+		cmpl $0, %eax 			/* see if eax returned 1 or 0 (success or fail) */
+		je .Lskip_pixel 		/* if fail, jump to Lskip_pixel	*/
 
-			# Calculate index: row * width + col
-		movl %ebx, %eax         # Copy row to %eax
-		imull %r13d, %eax       # Multiply by width
-		addl %ecx, %eax         # Add column
+		/* calculate index: row * width + col */
+		movl %ebx, %eax         /* copy row to %eax */
+		imull %r13d, %eax       /* multiply by width */
+		addl %ecx, %eax         /* lastly, add column */
 
-		movq IMAGE_DATA_OFFSET(%r14), %rdx    # Load input data pointer
-		movl (%rdx, %rax, 4), %edx            # load pixel from input[index]
-		movq IMAGE_DATA_OFFSET(%r15), %rsi    # Load output data pointer
-		movl %edx, (%rsi, %rax, 4)            # store pixel to output[index]
+		movq IMAGE_DATA_OFFSET(%r14), %rdx    /* load input data pointer */
+		movl (%rdx, %rax, 4), %edx            /* load pixel from input[index] */
+		movq IMAGE_DATA_OFFSET(%r15), %rsi    /* load output data pointer */
+		movl %edx, (%rsi, %rax, 4)            /* store pixel to output[index] */
 	
 	.Lskip_pixel:
-		incl %ecx	# increment column counter
-		jmp .Lcol_loop # go to next column
+		incl %ecx				/* increment column counter */
+		jmp .Lcol_loop 	/* go to next column */
 
 	.Lnext_row:
-		incl %ebx # increment row counter
-		jmp .Lrow_loop # go to the next row
+		incl %ebx 			/* increment row counter */
+		jmp .Lrow_loop 	/* go to the next row */
 
 	.Lellipse_done:
 		/* restore callee-saved registers in reverse order of saving */
@@ -529,11 +523,6 @@ imgproc_ellipse:
  */
 	.globl imgproc_emboss
 imgproc_emboss:
-
-
-
-
-
 
 
 
