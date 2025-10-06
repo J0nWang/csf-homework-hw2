@@ -144,6 +144,7 @@ is_in_ellipse:
 	/* Push callee saved variables */
 	pushq %rbx
 	pushq %r12
+	subq $8, %rsp        		/* realigns stack */
 
 	movl IMAGE_WIDTH_OFFSET(%rdi), %r8d /* make copy of image width and store in %r8d scratch variable */
 	movl IMAGE_HEIGHT_OFFSET(%rdi), %r9d /* make copy of image height and store in %r9d scratch variable */
@@ -191,11 +192,301 @@ is_in_ellipse:
 		movl $0, %eax		/* return 0 (not in ellispe) */
 
 	.Ldone_ellispe:
+		addq $8, %rsp        		/* reverse the 8 bits allocated to align stack */
 		/* restore callee-saved registers in reverse order of saving */
 		popq %r12
 		popq %rbx
 
 		ret
+
+/*
+ * Finds the RGB difference with largest absolute value.
+ * Note that red has priority over green and blue, green has priority over blue.
+ *
+ * Parameters:
+ * 	%rdi - int32_t representing the difference between two R values
+ * 	%rsi - int32_t representing the difference between two G values
+ * 	%rdx - int32_t representing the difference between two B values
+ * 
+ * @return the diff's with the largest absolute value (with respect to color priorities)
+ *
+ * 	Register use:
+ *   %r12d - holds diff_r (taken from the first parameter)
+ *   %r13d - holds diff_g (taken from the second parameter)
+ *   %r14  - holds diff_b (taken from the third parameter)
+ *   %rbx  - holds the absolute value of diff_r, used for comparisons
+*/
+.globl get_max_diff
+get_max_diff:
+	/* prologue to create ABI-compliant stack frame */	
+	pushq %rbp
+	movq %rsp, %rbp
+
+	/* Push callee saved variables */
+	pushq %r12
+	pushq %r13
+	pushq %r14
+	pushq %rbx
+
+	movl %edi, %r12d	// save diff_r in r12d
+	movl %esi, %r13d	// save diff_g in r13d
+	movl %edx, %r14d	// save diff_b in r14d
+
+	call abs_value		// get abs_value(diff_r)
+	movl %eax, %ebx		// save the result in %ebx
+
+	movl %r13d, %edi	// move diff_g into parameter
+	call abs_value		// get abs_value(diff_g)
+	movl %eax, %r8d		// save the result in %r8d
+
+	movl %r14d, %edi	// move diff_b into parameter
+	call abs_value		// get abs_value(diff_b)
+	movl %eax, %r9d		// save the result in %r9d
+
+	/* compare abs value of differences based on color priority  */
+	cmpl %r8d, %ebx				// compare abs_r and abs_g
+	jl .Lcheck_green_blue // if abs_r < abs_g, check green vs blue next */
+	cmpl %r9d, %ebx				// compare abs_r and abs_b
+	jl .Lreturn_blue			// if abs_b > abs_r, then just return blue
+	movl %r12d, %eax			// at this point, abs_r is >= abs_g and abs_b so return diff_r */
+	jmp .Ldone_get_max_diff	// jump to cleanup
+
+	.Lcheck_green_blue:
+		cmpl %r9d, %r8d		// compare abs_g and abs_b 
+		jl .Lreturn_blue	// if abs_b > abs_g, then just return blue
+		movl %r13d, %eax	// otherwise, return diff_b
+		jmp .Ldone_get_max_diff	// jump to cleanup
+
+	.Lreturn_blue:
+		movl %r14d, %eax	// return diff_b
+
+	.Ldone_get_max_diff:
+		/* restore callee-saved registers in reverse order of saving */
+		popq %rbx
+		popq %r14
+		popq %r13
+		popq %r12
+
+		/* epilogue to restore ABI-compliant stack frame */
+		popq %rbp
+		ret
+
+/*
+ * Returns the absolute value of some value.
+ *
+ * Parameters:
+ * 	%rdi - the uint32_t value to take an absolute value of
+ * 
+ * @return int32_t value result after taking absolute value of the input value
+*/
+.globl abs_value
+abs_value:
+	/*
+	first version using conditional jump: 
+	movl %edi, %eax					// store input value into eax 
+	cmpl $0, %eax						// is the value negative?
+	.jge .Ldone_abs_value		// if not, you're done 
+	negl %eax								// if it is, negate it
+
+	.Ldone_abs_value:
+		ret										// return the final value
+	*/
+	/* interesting way without using jump */
+	movl %edi, %eax					// store input value into eax
+	movl %edi, %edx					// make another copy into edx
+	sarl $31, %edx					// in edx's copy, LOGICAL shift right (sign extend) to get a mask
+	xorl %edx, %eax					// then xor, which flips all same value bits
+	subl %edx, %eax					// lastly, add the mask to get final value
+	ret		// return result
+	
+/*
+ * Clamps the gray value to a value between 0 and 255.
+ *
+ * Parameters:
+ * 	%rdi - int32_t value representing the gray value
+ * 
+ * @return the clamped value (if needed)
+*/
+.globl clamp_gray_value
+clamp_gray_value:
+	movl %edi, %eax 	// copy value to eax
+	testl %eax, %eax 	// want to see if value is negative
+	jns .Lcheck_max 	// if the value is positive, check if it's > 255
+	movl $0, %eax 		// if value is negative, clamp value to 0
+	ret								// return result
+	.Lcheck_max:
+		cmpl $255, %eax // check if value is > 255
+		jle .Lclamp_done // if it is, then no clamping is needed
+		movl $255, %eax // otherwise, clamp value to 255
+	.Lclamp_done:
+		ret							// return result
+	
+/*
+ * Calculates RGB differences between two pixels. Values are
+ * stored in diff_r, diff_g, and diff_b respectively.
+ * Parameters: 
+ *	%edi - current pixel
+ *	%esi - neighbor pixel
+ * 	%rdx - ptr to diff_r
+ *	%rcx - ptr to diff_g
+ *	%r8 - ptr to diff_b
+ *
+ * Register usage:
+ *	%r8d	- pixel index
+ *	%r9d -  used to temporarily store current pixel's red, green, 
+ *					and blue components for calculations
+ *  %r12d - stores current pixel
+ *  %r13d - stores neighbor pixel
+ */
+	.globl calculate_rgb_diffs
+calculate_rgb_diffs:
+	/* pushing callee-saved registers */
+	pushq %rbx
+	pushq %r12
+	pushq %r13
+	
+	movl %edi, %r12d        // save current pixel into r12d
+	movl %esi, %r13d        // save neighbor pixel into r13d
+	movq %rdx, %rbx         // save diff_r pointer into rbx
+	
+	// get current pixel's red component
+	movl %r12d, %edi        // set current pixel as arg 1
+	call get_r              // get red component
+	movl %eax, %r9d         // save red component into r9d
+	
+	// get neighbor pixel's red component
+	movl %r13d, %edi        // set neighbor pixel as arg 1
+	call get_r              // get red component
+	subl %r9d, %eax         // calculate diff_r = neighbor_r - current_r
+	movl %eax, (%rbx)       // store result into memory address of diff_r
+	
+	// get current pixel's green component
+	movl %r12d, %edi        // set current pixel as arg 1
+	call get_g              // get green component
+	movl %eax, %r9d         // save current green into r9d
+	
+	// get neighbor pixel green
+	movl %r13d, %edi        // set neighbor pixel as arg 1
+	call get_g              // get green component
+	subl %r9d, %eax         // calculate diff_g = neighbor_g - current_g
+	movl %eax, (%rcx)       // store result into memory address of diff_g
+	
+	// get current pixel blue
+	movl %r12d, %edi        // set current pixel as arg 1
+	call get_b              // get blue component
+	movl %eax, %r9d         // save current blue into r9d
+	
+	// get neighbor pixel blue
+	movl %r13d, %edi        // set neighbor pixel as arg 1
+	call get_b             	// get blue component
+	subl %r9d, %eax         // calculate diff_b = neighbor_b - current_b
+	movl %eax, (%r8)        // store result into memory address of diff_b
+	
+	/* restore callee-saved registers in reverse order of saving */
+	popq %r13
+	popq %r12
+	popq %rbx
+	ret                     // return
+
+/*
+ * Processes interior pixel for emboss image processing function
+ *
+ * Parameters: 
+ *	%rdi - input img pointer
+ * 	%rsi - output img pointer
+ *	%edx - row index
+ *	%ecx - col index
+ *	%r8d - pixel index
+ *
+ * Register usage:
+ *	%r8d	- pixel index
+ *  %r12d - row index
+ *  %r13d - col index
+ *  %r14 - input image pointer
+ *  %r15 - output image pointer
+ */
+	.globl process_interior_pixel
+process_interior_pixel:
+	/* prologue to create ABI-compliant stack frame */
+	pushq %rbp
+	movq %rsp, %rbp
+
+	/* pushing callee-saved registers */
+	subq $32, %rsp          // allocate stack space for local variables
+	pushq %rbx
+	pushq %r12
+	pushq %r13
+	pushq %r14
+	pushq %r15
+	subq $8, %rsp						/* realigns stack */
+	
+	movq %rdi, %r14         // save input image pointer into r14
+	movq %rsi, %r15         // save output image pointer into r15
+	movl %edx, %r12d        // save row into r12d
+	movl %ecx, %r13d        // save col into r13d
+	movl %r8d, %ebx         // save current index into ebx
+	
+	// get current pixel and its alpha
+	movq IMAGE_DATA_OFFSET(%r14), %rax    // load input data pointer into rax
+	movl (%rax, %rbx, 4), %edi            // load current pixel into arg 1
+	movl %edi, -4(%rbp)                   // save current pixel on stack
+	call get_a                            // get alpha
+	movl %eax, -8(%rbp)                   // save alpha on stack on stack
+	
+	// calculate neighbor index
+	movq %r14, %rdi         // set image pointer as arg 1
+	movl %r12d, %esi        // set row as arg 2
+	decl %esi               // row - 1
+	movl %r13d, %edx        // set column as arg 3
+	decl %edx               // column - 1
+	call compute_index      // get neighbor index
+	
+	// get neighbor pixel
+	movq IMAGE_DATA_OFFSET(%r14), %rdx    // load input data pointer
+	movl (%rdx, %rax, 4), %esi            // load neighbor pixel and set it to arg 2
+	
+	// calculate RGB differences
+	movl -4(%rbp), %edi     		// retrieve current pixel from stack and set it to arg 1
+															// esi already has neighbor pixel
+	leaq -12(%rbp), %rdx    		// set address for diff_r and pass as arg 3
+	leaq -16(%rbp), %rcx    		// set address for diff_g and pass as arg 4
+	leaq -20(%rbp), %r8     		// set address for diff_b and pass as arg 5
+	call calculate_rgb_diffs 		// calculate differences
+	
+	// get maximum difference
+	movl -12(%rbp), %edi    		// retrieve updated diff_r and pass as arg 1
+	movl -16(%rbp), %esi    		// retrieve updated diff_g and pass as arg 2
+	movl -20(%rbp), %edx    		// retrieve updated diff_b and pass as arg 3
+	call get_max_diff       		// get diff with largest absolute value
+	
+	// calculate gray = 128 + diff
+	addl $128, %eax         		// gray = 128 + diff
+	movl %eax, %edi         		// move gray to arg 1
+	call clamp_gray_value   		// clamp to [0, 255] (if needed)
+	
+	// create and store pixel
+	movl %eax, %edi         		// set red = gray
+	movl %eax, %esi         		// set green = gray
+	movl %eax, %edx         		// set blue = gray
+	movl -8(%rbp), %ecx     		// alpha = original alpha
+	call make_pixel         		// create pixel
+	
+	movq IMAGE_DATA_OFFSET(%r15), %rdx    // load output data pointer
+	movl %eax, (%rdx, %rbx, 4)            // and store pixel at the current index
+	
+	addq $8, %rsp						/* deallocate the 8 bytes used for stack alignment */
+
+	/* restore callee-saved registers in reverse order of saving */
+	popq %r15
+	popq %r14
+	popq %r13
+	popq %r12
+	popq %rbx
+	addq $32, %rsp          // deallocate stack space for local variables
+
+	/* epilogue to restore ABI-compliant stack frame */
+	popq %rbp
+	ret
 
 /*
  * Definitions of image transformation functions
@@ -415,6 +706,7 @@ imgproc_ellipse:
 	pushq %r13
 	pushq %r14
 	pushq %r15
+	subq $8, %rsp        		/* realigns stack */
 
 	movl IMAGE_HEIGHT_OFFSET(%rdi), %r12d		/* store image height in %r12d */
 	movl IMAGE_WIDTH_OFFSET(%rdi), %r13d 		/* store image width in %r13d */
@@ -422,34 +714,34 @@ imgproc_ellipse:
 	movq %rsi, %r15         /* save output image pointer in %r15 */
 	
 
-	movl $0, %ebx				/* initialize row counter to 0 */
+	movl $0, %ebx						/* initialize row counter to 0 */
 
 	.Lrow_loop:
-		cmpl %r12d, %ebx 				/* are we done iterating through all rows? */
-		jge .Lellipse_done 			/* if so, jump to cleanup	*/
-		movl $0, %ecx 					/* initialize col counter to 0 */
+		cmpl %r12d, %ebx 			/* are we done iterating through all rows? */
+		jge .Lellipse_done 		/* if so, jump to cleanup	*/
+		movl $0, %ecx 				/* initialize col counter to 0 */
 
 	.Lcol_loop:
-		cmpl %r13d, %ecx  	/* are we done iterating through all columns of the row? */
-		jge .Lnext_row 			/* if so, jump to next row */
+		cmpl %r13d, %ecx  		/* are we done iterating through all columns of the row? */
+		jge .Lnext_row 				/* if so, jump to next row */
 
-		pushq %rbx					/* save row count on stack */
-		pushq %rcx					/* save col count on stack */
+		pushq %rbx						/* save row count on stack */
+		pushq %rcx						/* save col count on stack */
 
-		movq %r14, %rdi			/* image pointer in %rdi (arg 1) */
-		movl %ebx, %esi			/* row in %esi (arg 2)	*/
-		movl %ecx, %edx 		/* col in %edx (arg 3) */
-		call is_in_ellipse	/* call helper function passing in those args */
+		movq %r14, %rdi				/* image pointer in %rdi (arg 1) */
+		movl %ebx, %esi				/* row in %esi (arg 2)	*/
+		movl %ecx, %edx 			/* col in %edx (arg 3) */
+		call is_in_ellipse		/* call helper function passing in those args */
 
-		popq %rcx						/* restore col count from stack */
-		popq %rbx						/* restore row count from stack */
-		cmpl $0, %eax 			/* see if eax returned 1 or 0 (success or fail) */
-		je .Lskip_pixel 		/* if fail, jump to Lskip_pixel	*/
+		popq %rcx							/* restore col count from stack */
+		popq %rbx							/* restore row count from stack */
+		cmpl $0, %eax 				/* see if eax returned 1 or 0 (success or fail) */
+		je .Lskip_pixel 			/* if fail, jump to Lskip_pixel	*/
 
 		/* calculate index: row * width + col */
-		movl %ebx, %eax         /* copy row to %eax */
-		imull %r13d, %eax       /* multiply by width */
-		addl %ecx, %eax         /* lastly, add column */
+		movl %ebx, %eax       /* copy row to %eax */
+		imull %r13d, %eax     /* multiply by width */
+		addl %ecx, %eax       /* lastly, add column */
 
 		movq IMAGE_DATA_OFFSET(%r14), %rdx    /* load input data pointer */
 		movl (%rdx, %rax, 4), %edx            /* load pixel from input[index] */
@@ -457,14 +749,16 @@ imgproc_ellipse:
 		movl %edx, (%rsi, %rax, 4)            /* store pixel to output[index] */
 	
 	.Lskip_pixel:
-		incl %ecx				/* increment column counter */
-		jmp .Lcol_loop 	/* go to next column */
+		incl %ecx							/* increment column counter */
+		jmp .Lcol_loop 				/* go to next column */
 
 	.Lnext_row:
-		incl %ebx 			/* increment row counter */
-		jmp .Lrow_loop 	/* go to the next row */
+		incl %ebx 						/* increment row counter */
+		jmp .Lrow_loop 				/* go to the next row */
 
 	.Lellipse_done:
+		addq $8, %rsp					/* deallocate the 8 bytes used for stack alignment */
+
 		/* restore callee-saved registers in reverse order of saving */
 		popq %r15
 		popq %r14
@@ -510,23 +804,114 @@ imgproc_ellipse:
  *  %rsi - pointer to the output Image (in which the
  *                    transformed pixels should be stored)
  * 
- * Parameters:
- *   %rdi - pointer to input Image
- *   %rsi - pointer to output Image
- * 
  * Register usage:
- *   %rbx - row counter
- *   %r12d - height
- *   %r13d - width
- *   %r14 - input image pointer
- *   %r15 - output image pointer
+ *  %rbx - row counter
+ *	%rcx - column counter
+ *	%r8d	- pixel index
+ *  %r12d - image height
+ *  %r13d - image width
+ *  %r14 - input image pointer
+ *  %r15 - output image pointer
  */
 	.globl imgproc_emboss
 imgproc_emboss:
+	/* prologue to create ABI-compliant stack frame */
+	push %rbp
+	movq %rsp, %rbp
 
+	/* pushing callee-saved registers */
+	pushq %rbx
+	pushq %r12
+	pushq %r13
+	pushq %r14
+	pushq %r15
+	subq $8, %rsp        		/* realigns stack */
 
+	movq %rdi, %r14					// save input image pointer into r14
+	movq %rsi, %r15 				// save output image pointer into r15
+	movl IMAGE_HEIGHT_OFFSET(%r14), %r12d // save image height into r12d
+	movl IMAGE_WIDTH_OFFSET(%r14), %r13d // save image width into r13d
 
+	movl $0, %ebx 					// initialize row counter to 0
+	
+	.Lemboss_row_loop:
+		cmpl %r12d, %ebx 			// have we iterated through all rows?
+		jge .Lemboss_done 		// if so, jump to cleanup
 
+		movl $0, %ecx 				// initilize column counter to 0
+	
+	.Lemboss_col_loop:
+		cmpl %r13d, %ecx 			// have we iterated through all columns of the row? 
+		jge .Lemboss_next_row // if yes, jump to next row
+
+		// compute current index in data array = current row * image width + current column
+		movl %ebx, %eax				// copy current row count to eax
+		imull %r13d, %eax 		// multipily by width
+		addl %ecx, %eax 			// add current column count
+		movl %eax, %r8d 			// save index in r8d
+
+		testl %ebx, %ebx 			// is row counter = 0 (a border pixel)?
+		jz .Lemboss_border_pixel // if it is, jump
+		testl %ecx, %ecx			// is column counter = 0 (a border pixel)?
+		jz .Lemboss_border_pixel // if so, jump
+
+		// otherwise, must be interior pixel
+		pushq %rcx						// save column counter
+		pushq %rbx						// save row counter
+		
+		movq %r14, %rdi				// pass input image pointer into arg 1
+		movq %r15, %rsi				// pass output image pointer into arg 2
+		movl %ebx, %edx 			// pass row counter into arg 3
+													// column counter is already in %ecx
+													// pixel index is already in %r8d
+		call process_interior_pixel   // process interior pixel with the passed in arguments
+		
+		popq %rbx							// restore row counter
+		popq %rcx							// restore column counter
+		jmp .Lemboss_next_pixel  // and continue to next pixel
+
+	.Lemboss_border_pixel:
+		pushq %rcx						// save column counter
+		pushq %rbx						// save row counter
+
+		movq IMAGE_DATA_OFFSET(%r14), %rax	// load input data pointer into rax
+		movl (%rax, %r8, 4), %edi	// load pixel from input
+		call get_a						// get alpha component
+		movl %eax, %ecx				// move alpha component to ecx
+
+		movl $128, %edi				// pass 128 in for red
+		movl $128, %esi				// pass 128 in for green
+		movl $128, %edx				// pass 128 in for blue
+		call make_pixel				// and call make_pixel to create pixel
+
+		movq IMAGE_DATA_OFFSET(%r15), %rdx	// load output data pointer
+		movl %eax, (%rdx, %r8, 4)	// and store pixel to output
+
+		popq %rbx							// restore row counter
+		popq %rcx							// restore column counter
+
+	.Lemboss_next_pixel:
+		incl %ecx							// increment column counter 
+		jmp .Lemboss_col_loop	// and continue the column loop
+
+	.Lemboss_next_row:
+		incl %ebx 						// increment row counter
+		jmp .Lemboss_row_loop // and start another row loop
+	
+	.Lemboss_done:
+		addq $8, %rsp		/* deallocate the 8 bytes used for stack alignment */
+		
+		/* restore callee-saved registers in reverse order of saving */
+		popq %r15
+		popq %r14
+		popq %r13
+		popq %r12
+		popq %rbx
+
+		/* epilogue to restore ABI-compliant stack frame */
+		popq %rbp
+		ret
+	
 /*
 vim:ft=gas:
 */

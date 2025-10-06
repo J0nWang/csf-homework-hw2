@@ -11,6 +11,8 @@ In C:
 
 In Assembly:
 -completed complement and transpose image processing functions
--added header commet with my name, email, and brief desciption of the assignment
--completed ellipse image processing function and its helper function
--added other helper functions that may be used in the emboss functio
+-added header comment with my name, email, and brief desciption of the assignment
+-completed ellipse and emboss image processing functions and their helper functions
+
+Extra note:
+This current version of my submission is quite late and I'm not sure if some credit will automatically be deducted. If the deductions cause this version's score to be less than my earlier submission's score, please use my earlier version that isn't as late. I appreciate it!

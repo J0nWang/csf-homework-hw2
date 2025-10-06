@@ -99,7 +99,7 @@ void destroy_img( struct Image *img );
 void test_complement_basic( TestObjs *objs );
 void test_transpose_basic( TestObjs *objs );
 void test_ellipse_basic( TestObjs *objs );
-// void test_emboss_basic( TestObjs *objs );
+void test_emboss_basic( TestObjs *objs );
 // TODO: add prototypes for additional test functions
 void test_get_r( TestObjs *objs );
 void test_get_g( TestObjs *objs );
@@ -108,11 +108,11 @@ void test_get_a( TestObjs *objs );
 void test_make_pixel( TestObjs *objs );
 void test_compute_index( TestObjs *objs );
 void test_is_in_ellipse( TestObjs *objs );
-// void test_calculate_rgb_diffs( TestObjs *objs );
-// void test_abs_value( TestObjs *objs );
-// void test_get_max_diff( TestObjs *objs );
-// void test_clamp_gray_value( TestObjs *objs );
-// void test_process_interior_pixel( TestObjs *objs );
+void test_calculate_rgb_diffs( TestObjs *objs );
+void test_abs_value( TestObjs *objs );
+void test_get_max_diff( TestObjs *objs );
+void test_clamp_gray_value( TestObjs *objs );
+void test_process_interior_pixel( TestObjs *objs );
 
 int main( int argc, char **argv ) {
   // allow the specific test to execute to be specified as the
@@ -128,7 +128,7 @@ int main( int argc, char **argv ) {
   TEST( test_complement_basic );
   TEST( test_transpose_basic );
   TEST( test_ellipse_basic );
-  // TEST( test_emboss_basic );
+  TEST( test_emboss_basic );
 
   TEST( test_get_r );
   TEST( test_get_g );
@@ -137,11 +137,11 @@ int main( int argc, char **argv ) {
   TEST( test_make_pixel );
   TEST( test_compute_index );
   TEST( test_is_in_ellipse );
-  // TEST( test_calculate_rgb_diffs );
-  // TEST( test_abs_value );
-  // TEST( test_get_max_diff );
-  // TEST( test_clamp_gray_value );
-  // TEST( test_process_interior_pixel );
+  TEST( test_calculate_rgb_diffs );
+  TEST( test_abs_value );
+  TEST( test_get_max_diff );
+  TEST( test_clamp_gray_value );
+  TEST( test_process_interior_pixel );
 
   TEST_FINI();
 }
@@ -526,123 +526,123 @@ void test_is_in_ellipse( TestObjs *objs ) {
     ASSERT( is_in_ellipse(sq, 11, 11) == 0 );
 }
 
-// void test_calculate_rgb_diffs( TestObjs *objs ) {
-//     uint32_t current = make_pixel(100, 150, 200, 255); 
-//     uint32_t neighbor = make_pixel(120, 130, 180, 255);
+void test_calculate_rgb_diffs( TestObjs *objs ) {
+    uint32_t current = make_pixel(100, 150, 200, 255); 
+    uint32_t neighbor = make_pixel(120, 130, 180, 255);
     
-//     int32_t diff_r, diff_g, diff_b;
-//     calculate_rgb_diffs(current, neighbor, &diff_r, &diff_g, &diff_b);
+    int32_t diff_r, diff_g, diff_b;
+    calculate_rgb_diffs(current, neighbor, &diff_r, &diff_g, &diff_b);
     
-//     ASSERT( diff_r == 20 );  // 120 - 100 = 20
-//     ASSERT( diff_g == -20 ); // 130 - 150 = -20
-//     ASSERT( diff_b == -20 ); // 180 - 200 = -20
+    ASSERT( diff_r == 20 );  // 120 - 100 = 20
+    ASSERT( diff_g == -20 ); // 130 - 150 = -20
+    ASSERT( diff_b == -20 ); // 180 - 200 = -20
     
-//     calculate_rgb_diffs(current, current, &diff_r, &diff_g, &diff_b);
-//     ASSERT( diff_r == 0 );
-//     ASSERT( diff_g == 0 );
-//     ASSERT( diff_b == 0 );
+    calculate_rgb_diffs(current, current, &diff_r, &diff_g, &diff_b);
+    ASSERT( diff_r == 0 );
+    ASSERT( diff_g == 0 );
+    ASSERT( diff_b == 0 );
     
-//     uint32_t black = make_pixel(0, 0, 0, 255);
-//     uint32_t white = make_pixel(255, 255, 255, 255);
-//     calculate_rgb_diffs(black, white, &diff_r, &diff_g, &diff_b);
-//     ASSERT( diff_r == 255 );
-//     ASSERT( diff_g == 255 );
-//     ASSERT( diff_b == 255 );
-// }
+    uint32_t black = make_pixel(0, 0, 0, 255);
+    uint32_t white = make_pixel(255, 255, 255, 255);
+    calculate_rgb_diffs(black, white, &diff_r, &diff_g, &diff_b);
+    ASSERT( diff_r == 255 );
+    ASSERT( diff_g == 255 );
+    ASSERT( diff_b == 255 );
+}
 
-// void test_abs_value( TestObjs *objs ) {
-//     ASSERT( abs_value(10) == 10 );
-//     ASSERT( abs_value(255) == 255 );
-//     ASSERT( abs_value(1) == 1 );
+void test_abs_value( TestObjs *objs ) {
+    ASSERT( abs_value(10) == 10 );
+    ASSERT( abs_value(255) == 255 );
+    ASSERT( abs_value(1) == 1 );
     
-//     ASSERT( abs_value(-10) == 10 );
-//     ASSERT( abs_value(-255) == 255 );
-//     ASSERT( abs_value(-1) == 1 );
+    ASSERT( abs_value(-10) == 10 );
+    ASSERT( abs_value(-255) == 255 );
+    ASSERT( abs_value(-1) == 1 );
     
-//     ASSERT( abs_value(0) == 0 );
+    ASSERT( abs_value(0) == 0 );
     
-//     ASSERT( abs_value(-128) == 128 );
-//     ASSERT( abs_value(127) == 127 );
-// }
+    ASSERT( abs_value(-128) == 128 );
+    ASSERT( abs_value(127) == 127 );
+}
 
-// void test_get_max_diff( TestObjs *objs ) {
-//     // test red priority (red >= green >= blue)
-//     ASSERT( get_max_diff(10, 10, 10) == 10 );
-//     ASSERT( get_max_diff(10, 10, 5) == 10 );
-//     ASSERT( get_max_diff(15, 10, 5) == 15 );
+void test_get_max_diff( TestObjs *objs ) {
+    // test red priority (red >= green >= blue)
+    ASSERT( get_max_diff(10, 10, 10) == 10 );
+    ASSERT( get_max_diff(10, 10, 5) == 10 );
+    ASSERT( get_max_diff(15, 10, 5) == 15 );
     
-//     // test green priority over blue
-//     ASSERT( get_max_diff(5, 10, 10) == 10 ); 
-//     ASSERT( get_max_diff(5, 15, 10) == 15 );
+    // test green priority over blue
+    ASSERT( get_max_diff(5, 10, 10) == 10 ); 
+    ASSERT( get_max_diff(5, 15, 10) == 15 );
     
-//     // test blue selection
-//     ASSERT( get_max_diff(5, 8, 20) == 20 );
+    // test blue selection
+    ASSERT( get_max_diff(5, 8, 20) == 20 );
     
-//     ASSERT( get_max_diff(-15, 10, 5) == -15 ); // |-15| = 15
-//     ASSERT( get_max_diff(5, -20, 10) == -20 ); // |-20| = 20
-//     ASSERT( get_max_diff(5, 8, -25) == -25 );  // |-25| = 25
+    ASSERT( get_max_diff(-15, 10, 5) == -15 ); // |-15| = 15
+    ASSERT( get_max_diff(5, -20, 10) == -20 ); // |-20| = 20
+    ASSERT( get_max_diff(5, 8, -25) == -25 );  // |-25| = 25
     
-//     // mix positive/negative with color priorities
-//     ASSERT( get_max_diff(-10, -10, 5) == -10 );
-//     ASSERT( get_max_diff(8, -10, -10) == -10 );
-// }
+    // mix positive/negative with color priorities
+    ASSERT( get_max_diff(-10, -10, 5) == -10 );
+    ASSERT( get_max_diff(8, -10, -10) == -10 );
+}
 
-// void test_clamp_gray_value( TestObjs *objs ) {
-//     ASSERT( clamp_gray_value(0) == 0 );
-//     ASSERT( clamp_gray_value(128) == 128 );
-//     ASSERT( clamp_gray_value(255) == 255 );
-//     ASSERT( clamp_gray_value(100) == 100 );
+void test_clamp_gray_value( TestObjs *objs ) {
+    ASSERT( clamp_gray_value(0) == 0 );
+    ASSERT( clamp_gray_value(128) == 128 );
+    ASSERT( clamp_gray_value(255) == 255 );
+    ASSERT( clamp_gray_value(100) == 100 );
     
-//     ASSERT( clamp_gray_value(-1) == 0 );
-//     ASSERT( clamp_gray_value(-100) == 0 );
-//     ASSERT( clamp_gray_value(-255) == 0 );
+    ASSERT( clamp_gray_value(-1) == 0 );
+    ASSERT( clamp_gray_value(-100) == 0 );
+    ASSERT( clamp_gray_value(-255) == 0 );
     
-//     ASSERT( clamp_gray_value(256) == 255 );
-//     ASSERT( clamp_gray_value(300) == 255 );
-//     ASSERT( clamp_gray_value(1000) == 255 );
+    ASSERT( clamp_gray_value(256) == 255 );
+    ASSERT( clamp_gray_value(300) == 255 );
+    ASSERT( clamp_gray_value(1000) == 255 );
     
-//     // mimic typical emboss calculations (128 + diff)
-//     ASSERT( clamp_gray_value(128 + 127) == 255 );
-//     ASSERT( clamp_gray_value(128 - 128) == 0 ); 
-//     ASSERT( clamp_gray_value(128 + 0) == 128 );
-// }
+    // mimic typical emboss calculations (128 + diff)
+    ASSERT( clamp_gray_value(128 + 127) == 255 );
+    ASSERT( clamp_gray_value(128 - 128) == 0 ); 
+    ASSERT( clamp_gray_value(128 + 0) == 128 );
+}
 
-// void test_process_interior_pixel( TestObjs *objs ) {
-//     int32_t test_row = 2, test_col = 3;  // some random interior pixel in smiley image
-//     int32_t index = compute_index(objs->smiley, test_row, test_col);
-//     int32_t neighbor_index = compute_index(objs->smiley, test_row - 1, test_col - 1);
+void test_process_interior_pixel( TestObjs *objs ) {
+    int32_t test_row = 2, test_col = 3;  // some random interior pixel in smiley image
+    int32_t index = compute_index(objs->smiley, test_row, test_col);
+    int32_t neighbor_index = compute_index(objs->smiley, test_row - 1, test_col - 1);
     
-//     uint32_t current_pixel = objs->smiley->data[index];
-//     uint32_t neighbor_pixel = objs->smiley->data[neighbor_index];
-//     uint32_t alpha = get_a(current_pixel);
+    uint32_t current_pixel = objs->smiley->data[index];
+    uint32_t neighbor_pixel = objs->smiley->data[neighbor_index];
+    uint32_t alpha = get_a(current_pixel);
     
-//     img_init(objs->smiley_out, objs->smiley->width, objs->smiley->height);
+    img_init(objs->smiley_out, objs->smiley->width, objs->smiley->height);
 
-//     process_interior_pixel(objs->smiley, objs->smiley_out, test_row, test_col, index, current_pixel, alpha);
-//     uint32_t result = objs->smiley_out->data[index]; // our embossed pixel
+    process_interior_pixel(objs->smiley, objs->smiley_out, test_row, test_col, index, current_pixel, alpha);
+    uint32_t result = objs->smiley_out->data[index]; // our embossed pixel
     
-//     // now to double check, need to manually calculate what we expect
-//     int32_t diff_r, diff_g, diff_b;
-//     calculate_rgb_diffs(current_pixel, neighbor_pixel, &diff_r, &diff_g, &diff_b);
-//     int32_t expected_diff = get_max_diff(diff_r, diff_g, diff_b);
-//     int32_t expected_gray = clamp_gray_value(128 + expected_diff);
+    // now to double check, need to manually calculate what we expect
+    int32_t diff_r, diff_g, diff_b;
+    calculate_rgb_diffs(current_pixel, neighbor_pixel, &diff_r, &diff_g, &diff_b);
+    int32_t expected_diff = get_max_diff(diff_r, diff_g, diff_b);
+    int32_t expected_gray = clamp_gray_value(128 + expected_diff);
     
-//     ASSERT( get_r(result) == expected_gray );
-//     ASSERT( get_g(result) == expected_gray );
-//     ASSERT( get_b(result) == expected_gray );
-//     ASSERT( get_a(result) == alpha );
+    ASSERT( get_r(result) == expected_gray );
+    ASSERT( get_g(result) == expected_gray );
+    ASSERT( get_b(result) == expected_gray );
+    ASSERT( get_a(result) == alpha );
     
-//     // testing another interior pixel
-//     test_row = 3; test_col = 5; // white pixel
-//     index = compute_index(objs->smiley, test_row, test_col);
-//     current_pixel = objs->smiley->data[index];
-//     alpha = get_a(current_pixel);
+    // testing another interior pixel
+    test_row = 3; test_col = 5; // white pixel
+    index = compute_index(objs->smiley, test_row, test_col);
+    current_pixel = objs->smiley->data[index];
+    alpha = get_a(current_pixel);
     
-//     process_interior_pixel(objs->smiley, objs->smiley_out, test_row, test_col, index, current_pixel, alpha);
-//     result = objs->smiley_out->data[index];
+    process_interior_pixel(objs->smiley, objs->smiley_out, test_row, test_col, index, current_pixel, alpha);
+    result = objs->smiley_out->data[index];
     
-//     // result should be grayscale since it's upper left neighbor is also white (gray = 128 + 0 = 128)
-//     ASSERT( get_a(result) == alpha );
-//     ASSERT( get_r(result) == get_g(result) ); // r = g = b
-//     ASSERT( get_g(result) == get_b(result) );  
-// }
+    // result should be grayscale since it's upper left neighbor is also white (gray = 128 + 0 = 128)
+    ASSERT( get_a(result) == alpha );
+    ASSERT( get_r(result) == get_g(result) ); // r = g = b
+    ASSERT( get_g(result) == get_b(result) );  
+}
